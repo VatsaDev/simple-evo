@@ -1,10 +1,11 @@
 const startTime = Date.now();
+let lastCheck = Date.now();
 let gen = 0;
 
 class Chicken {
   constructor(x, y) {
     this.brain = ml5.neuralNetwork({
-      inputs: ["xpos", "ypos"],
+      inputs: ["xpos", "ypos", "clumpDist"],
       outputs: [
         "left",
         "right",
@@ -25,10 +26,28 @@ class Chicken {
     this.height = 10;
     this.color = "white";
     this.score = 0;
+    this.chickenClumpDist = 0;
+    this.lastMove = "up";
   }
 
   nextMove() {
-    return this.brain.classify({ xpos: this.x, ypos: this.y });
+    let classification = this.brain.classify({
+      xpos: this.x,
+      ypos: this.y,
+      clumpDist: this.clumpDist,
+    });
+    console.log(this.lastMove)
+    while (classification == this.lastMove) {
+      classification = this.brain.classify({
+        xpos: this.x,
+        ypos: this.y,
+        clumpDist: this.clumpDist,
+      });
+    }
+    console.log(classification)
+    this.lastMove = classification;
+    console.log(this.lastMove)
+    return classification;
   }
 
   checkBounds() {
@@ -89,7 +108,7 @@ class Chicken {
 class Fox {
   constructor(x, y) {
     this.brain = ml5.neuralNetwork({
-      inputs: ["xpos", "ypos", "chickenDist"],
+      inputs: ["xpos", "ypos", "chickenDist", "clumpDist"],
       outputs: [
         "left",
         "right",
@@ -110,11 +129,32 @@ class Fox {
     this.height = 10;
     this.color = "orange";
     this.score = 0;
-	this.chickenDist = 100; 
+    this.chickenDist = 100;
+    this.clumpDist = 10;
+    this.lastMove ="up";
   }
 
   nextMove() {
-    return this.brain.classify({ xpos: this.x, ypos: this.y , chickenDist:this.chickenDist});
+    return 
+  }
+
+  nextMove() {
+    let classification = this.brain.classify({
+      xpos: this.x,
+      ypos: this.y,
+      chickenDist: this.chickenDist,
+      clumpDist: this.clumpDist,
+    });
+    while (classification == this.lastMove) {
+      classification = this.brain.classify({
+        xpos: this.x,
+        ypos: this.y,
+        chickenDist: this.chickenDist,
+        clumpDist: this.clumpDist,
+      });
+    }
+    this.lastMove = classification;
+    return classification;
   }
 
   checkBounds() {
@@ -258,7 +298,7 @@ function draw() {
 
   for (var i = 0; i < chickens.length; i++) {
     const currentTime = Date.now();
-    const elapsedTime = Math.floor((currentTime - startTime) / 10000);
+    const elapsedTime = 0.1 * Math.floor((currentTime - startTime) / 10000);
     chickens[i].score += elapsedTime;
   }
 
@@ -268,22 +308,100 @@ function draw() {
         // if collide
         dead_chickens.push(chickens[i]);
         chickens.splice(i, 1); // remove chicken
-        foxes[j].score += 1; // up the foxes score
+        foxes[j].score += 100; // up the foxes score
         break;
       }
     }
   }
 
+  // closest chicken
   for (var i = 0; i < foxes.length; i++) {
-	let chickenDist = 1000;
+    let chickenDist = 1000;
     for (var j = 0; j < chickens.length; j++) {
-		var dist = getDistance(foxes[i].x, foxes[i].y, chickens[j].x, chickens[j].y)
-		if(chickenDist > dist){
-			chickenDist = dist;
-		}
+      var dist = getDistance(
+        foxes[i].x,
+        foxes[i].y,
+        chickens[j].x,
+        chickens[j].y
+      );
+      if (chickenDist > dist) {
+        chickenDist = dist;
+      }
     }
-	foxes[i].chickenDist = dist
-	//console.log(`Fox${i} closest chicken distance: ${dist}`);
+    foxes[i].chickenDist = dist;
+    //console.log(`Fox${i} closest chicken distance: ${dist}`);
+  }
+
+  // clump check for foxes
+  for (var i = 0; i < foxes.length; i++) {
+    let foxDist = 1000;
+    for (var j = 0; j < foxes.length; j++) {
+      var dist = getDistance(foxes[i].x, foxes[i].y, foxes[j].x, foxes[j].y);
+      if (foxDist > dist) {
+        foxDist = dist;
+      }
+    }
+    foxes[i].clumpDist = dist;
+  }
+
+  //clump penalty
+  for (var i = 0; i < foxes.length; i++) {
+    if (foxes[i].clumpDist < 15) {
+      //console.log("fox too close!")
+      foxes[i].score -= 100;
+    }
+  }
+
+  // clump check for foxes
+  for (var i = 0; i < chickens.length; i++) {
+    let chickenClumpDist = 1000;
+    for (var j = 0; j < chickens.length; j++) {
+      var dist = getDistance(
+        chickens[i].x,
+        chickens[i].y,
+        chickens[j].x,
+        chickens[j].y
+      );
+      if (chickenClumpDist > dist) {
+        chickenClumpDist = dist;
+      }
+    }
+    chickens[i].chickenClumpDist = dist;
+    //console.log(`Chicken${i} clump distance: ${dist}`);
+  }
+
+  //clump penalty
+  for (var i = 0; i < chickens.length; i++) {
+    if (chickens[i].clumpDist > 15) {
+      console.log("chicken clump!");
+      chickens[i].score -= 100;
+    }
+  }
+
+  // Check for collisions between chickens
+  for (var i = 0; i < chickens.length; i++) {
+    for (var j = i + 1; j < chickens.length; j++) {
+      if (checkCollision(chickens[i], chickens[j])) {
+        // chickens get sent to center
+        chickens[i].x = randInt(200, 400)
+        chickens[j].x = randInt(200, 400)
+        chickens[i].y = randInt(200, 400)
+        chickens[j].y = randInt(200, 400)
+      }
+    }
+  }
+
+  // Check for collisions between foxes
+  for (var i = 0; i < foxes.length; i++) {
+    for (var j = i + 1; j < foxes.length; j++) {
+      if (checkCollision(foxes[i], foxes[j])) {
+        // foxes get to center
+        foxes[i].x = randInt(200, 400)
+        foxes[j].x = randInt(200, 400)
+        foxes[i].y = randInt(200, 400)
+        foxes[j].y = randInt(200, 400)
+      }
+    }
   }
 
   for (var i = 0; i < chickens.length; i++) {
@@ -296,7 +414,8 @@ function draw() {
   console.log(`Best Chicken: ${bestScore(chickens)}`);
   console.log(`Best Fox: ${bestScore(foxes)}`);
 
-  if (bestScore(chickens) > 400 + gen * 30 || chickens.length == 0) {
+  var now = new Date().getTime();
+  if (now - lastCheck > 20000 || chickens.length == 0) {
     // end gen if its gone on too long
     for (var i = 0; i < chickens.length; i++) {
       dead_chickens.push(chickens[i]);
@@ -304,6 +423,7 @@ function draw() {
       break;
     }
     generate();
+    lastCheck = now;
   }
 }
 
@@ -318,7 +438,7 @@ function generate() {
   let b_chick = dead_chickens[1]; // second best chicken
   let c_chick = a_chick.brain.crossover(b_chick.brain);
 
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 40; i++) {
     c_chick.mutate(0.05);
     let temp_chick = new Chicken(
       randInt(0, window.innerWidth * 0.8),
@@ -337,7 +457,7 @@ function generate() {
   let c_foxes = a_foxes.brain.crossover(b_foxes.brain);
 
   foxes = [];
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 20; i++) {
     c_foxes.mutate(0.05);
     let temp_foxes = new Fox(
       randInt(0, window.innerWidth * 0.8),
