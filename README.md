@@ -12,3 +12,4 @@ Very Basic functionality,
  - Neural Net Outputs:
   - directions(left, right, up, down)
   - diagnol directions
+ - added penalties for clump, collision randomness
