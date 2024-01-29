@@ -36,7 +36,7 @@ class Chicken {
       ypos: this.y,
       clumpDist: this.clumpDist,
     });
-    console.log(this.lastMove)
+    //console.log(this.lastMove)
     while (classification == this.lastMove) {
       classification = this.brain.classify({
         xpos: this.x,
@@ -44,9 +44,9 @@ class Chicken {
         clumpDist: this.clumpDist,
       });
     }
-    console.log(classification)
+    //console.log(classification)
     this.lastMove = classification;
-    console.log(this.lastMove)
+    //console.log(this.lastMove)
     return classification;
   }
 
@@ -324,12 +324,31 @@ function draw() {
         chickens[j].x,
         chickens[j].y
       );
+      //console.log(`Fox${i} ${foxes[i].x} ${foxes[i].y} closest chicken distance: ${dist} ${chickens[j].x} ${chickens[j].y}`);
+      
+      // haha data gen foxes smort
+      if(foxes[i].x-chickens[j].x>0 && foxes[i].y-chickens[j].y>0){
+        d = "diagDownRight"
+        console.log(foxes[i].x,foxes[i].y,chickens[j].x,chickens[j].y,d)
+      } // move right x, move down
+      if(foxes[i].x-chickens[j].x>0 && foxes[i].y-chickens[j].y<0){
+        d = "diagUpRight"
+        console.log(foxes[i].x,foxes[i].y,chickens[j].x,chickens[j].y,d)
+      } // move right x move up
+      if(foxes[i].x-chickens[j].x<0 && foxes[i].y-chickens[j].y>0){
+        d = "diagDownLeft"
+        console.log(foxes[i].x,foxes[i].y,chickens[j].x,chickens[j].y,d)
+      } // move left x, move down
+      if(foxes[i].x-chickens[j].x<0 && foxes[i].y-chickens[j].y<0){
+        d = "diagUpLeft"
+        console.log(foxes[i].x,foxes[i].y,chickens[j].x,chickens[j].y,d)
+      } // move left x, move up
+      
       if (chickenDist > dist) {
         chickenDist = dist;
       }
     }
     foxes[i].chickenDist = dist;
-    //console.log(`Fox${i} closest chicken distance: ${dist}`);
   }
 
   // clump check for foxes
@@ -343,6 +362,7 @@ function draw() {
     }
     foxes[i].clumpDist = dist;
   }
+
 
   //clump penalty
   for (var i = 0; i < foxes.length; i++) {
@@ -373,7 +393,7 @@ function draw() {
   //clump penalty
   for (var i = 0; i < chickens.length; i++) {
     if (chickens[i].clumpDist > 15) {
-      console.log("chicken clump!");
+      //console.log("chicken clump!");
       chickens[i].score -= 100;
     }
   }
@@ -411,9 +431,9 @@ function draw() {
     foxes[i].draw();
   }
 
-  console.log(`Best Chicken: ${bestScore(chickens)}`);
-  console.log(`Best Fox: ${bestScore(foxes)}`);
-
+  //console.log(`Best Chicken: ${bestScore(chickens)}`);
+  //console.log(`Best Fox: ${bestScore(foxes)}`);
+  
   var now = new Date().getTime();
   if (now - lastCheck > 20000 || chickens.length == 0) {
     // end gen if its gone on too long
